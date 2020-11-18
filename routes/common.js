@@ -3,16 +3,53 @@ const express = require("express");
 const router = express.Router();
 
 const { userValidate, emailValidate } = require("../validator/validation");
-const { createUser, getUserByEmail, getUsers, deleteUser, login }= require('../data/userData');
+const {
+  createUser,
+  getUserByEmail,
+  getUsers,
+  deleteUser,
+  login,
+  updateUser,
+  changePassword,
+} = require("../data/userData");
 const { auth } = require("../auth/auth");
+const { binaryFileUpload } = require("../data/binaryFileUpload");
 
-router.post("/user", userValidate,createUser);
-router.get("/users",getUsers);
-router.get("/userbyemail",emailValidate,getUserByEmail);
-router.delete("/userbyemail",emailValidate,deleteUser);
-router.post("/login",login)
+router.post("/user", userValidate, createUser);
+router.put("/user", userValidate, updateUser);
+router.get("/users", getUsers);
+router.get("/userbyemail", emailValidate, getUserByEmail);
+router.delete("/userbyemail", emailValidate, deleteUser);
+router.post("/login", login);
+router.post("/changepassword", auth, userValidate, changePassword);
 
-router.post('/admission',admission)
+const x = require("../data/binaryFileUpload");
+const staticFile = require("../data/fileUpload");
+const {
+  admission,
+  admissionStatus,
+  uploadDocument,
+} = require("../data/studentData");
+
+const { addEBook, uploadEbook } = require("../data/librarayData");
+
+router.post("/uploads", x.uploads.uploadx, uploadDocument);
+// (req,res)=>{
+
+//   console.log(req.body)
+//   res.status(200).json(req.files);
+//   //res.send("success",req.files)
+// })
+
+router.post("/admission", admission);
+router.post("/admissionstatus", admissionStatus);
+router.post("/validated", auth, (req, res) => {
+  console.log(req.body, req.user);
+  res.status(200).json({ message: "success", data: req.user });
+});
+
+router.post("/addebook", addEBook);
+router.post("/uploadebookfile", staticFile.uploads.uploadx, uploadEbook);
 /**---------------------------------------------------------------- */
 router.post(
   "/dataauth",
@@ -25,13 +62,9 @@ router.post(
     res.send(JSON.stringify(req.body));
   }
 );
-router.get("/welcomex",auth, (req, res) => {
-  
+router.get("/welcomex", auth, (req, res) => {
   res.send("welcome x");
 });
 
 // router.post("/applicant", validation.applicant, createApplicant);
 module.exports = router;
-
-
- 

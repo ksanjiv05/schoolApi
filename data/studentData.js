@@ -1,30 +1,75 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
+const studentSchema = require('../schema/studentSchema');
 const dbCon = require('../util/dbConnection')
 /***===========panding------------------- */
 module.exports.admission = async (req,res) =>{
   try{
-    const db = (await dbCon.dbConnection).connection;
-    const checkUser=await GetUserByEmail(req.body.email);
-    if(checkUser) res.status(403).send("User already exist .");
-    else{
-      const {username,email,name,phone,password,dob}=req.body;
-      const salt = await bcrypt.genSalt(10);
-      const hashPassword = await bcrypt.hash(password, salt);
-      let user = new userSchema({username,email,name,phone,password:hashPassword,dob});
-
-      
-      await user.save(function(err,data){
-        if(err){console.log(err)
-          res.status(403).send("User not created .");
-        }
-        else {
-          console.log(data)
-        }
-      });
-    }
+    console.log(req.body) 
+      const year= new Date().getUTCFullYear();
+      const Student = mongoose.model('Student')
+      const noOfStudents=(await Student.find({}, "name email", function (err, responce){})).length+1+10000;
+      const rollnumber="TSM"+noOfStudents+year;
+      req.body.rollnumber=rollnumber;
+      req.body.admissionStatus="1";//need update
+      // if(checkUser) res.status(403).send("User already exist .");
+      // else{
+        let student = new studentSchema(req.body);
+        await student.save(function(err,data){
+          if(err){console.log(err)
+            res.status(403).send("student not created .");
+          }
+          else {
+            console.log(data);
+            res.status(200).send("student created .");
+          }
+        });
+    
   }catch(err){
     console.log(err)
   }
+}
+
+module.exports.admissionStatus=async(req,res)=>{
+  console.log(req.body.email)
+  const checkStudent=await GetStudentByEmail(req.body.email);
+  console.log('students',checkStudent)
+  
+    if(checkStudent){
+        const payload={
+          email:checkStudent.email,
+          rollnumber:checkStudent.rollnumber,
+          admission_Status:checkStudent.admissionStatus
+        }
+        return res.status(200).json(payload)
+    }
+    else return res.status(201).json({message:"not aviable"});
+}
+
+module.exports.uploadDocument= async(req,res)=>{
+  console.log(req.query.email);
+  const checkStudent=await GetStudentByEmail(req.query.email);
+  console.log('students',checkStudent)
+    if(checkStudent){
+      const query = {'email':req.query.email};
+      console.log(req.files)
+      const Student = mongoose.model('Student');
+      const profile= req.files.profile[0].filename;
+      const markSheet= req.files.markSheet[0].filename;
+      const signature= req.files.signature[0].filename;
+      console.log(profile,markSheet,signature)
+      Student.findOneAndUpdate(query, {profile:profile,marksheet:markSheet,signature:signature,admissionStatus:"2"}, {upsert: true}, function(err, doc) {
+        //User.findByIdAndUpdate({_id},{username,name,phone,dob}, function(err, doc) {
+        if (err) return res.send(500, {error: err});
+        else{ 
+          console.log(doc)
+          return res.send('Succesfully saved.');}
+        });
+      
+    }
+    else{
+
+    }
+
 }
 
 // module.exports.getUsers = (req,res) =>{
@@ -124,14 +169,15 @@ module.exports.admission = async (req,res) =>{
 
 // /**----------------------- */
 
-// const GetUserByEmail= async (email)=>{
-//   const User = mongoose.model("User");
-//     return await User.findOne(
-//       { email: email },
-//       "name email",
-//       function (err, responce) {
-//         if (err) return null; 
-//         //console.log(responce);
-//       }
-//     );
-// }
+const GetStudentByEmail= async (email)=>{
+  const Student = mongoose.model("Student");
+  console.log("----",email)
+    return await Student.findOne(
+      { email: email },
+      "name rollnumber admissionStatus email",
+      function (err, responce) {
+        if (err) return null; 
+        //console.log(responce);
+      }
+    );
+}
